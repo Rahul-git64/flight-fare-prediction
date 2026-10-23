@@ -1,0 +1,39 @@
+name: Supervision Cron
+
+on:
+  schedule:
+    - cron: "15 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  supervise-service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and boot supervised container
+        run: |
+          docker build -t flight-fare-supervision:latest .
+          docker run -d --name flight-supervision -p 8000:8000 flight-fare-supervision:latest
+          for i in $(seq 1 25); do
+            if curl -fsS http://127.0.0.1:8000/health > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Verify health and drift supervision endpoints
+        run: |
+          curl -fsS http://127.0.0.1:8000/health | tee health.json
+          for days in 5 10 15 20 25 30; do
+            curl -fsS -X POST http://127.0.0.1:8000/predict \
+              -H "Content-Type: application/json" \
+              -d "{\"airline\":\"Indigo\",\"source_city\":\"Delhi\",\"departure_time\":\"Morning\",\"stops\":\"zero\",\"arrival_time\":\"Afternoon\",\"destination_city\":\"Mumbai\",\"travel_class\":\"Economy\",\"duration\":2.2,\"days_left\":$days}" > /dev/null
+          done
+          curl -fsS http://127.0.0.1:8000/monitor/drift | tee drift.json
+          python -c "import json; d=json.load(open('drift.json')); assert d['status'] in ('healthy', 'drift_detected'), d"
+
+      - name: Tear down container
+        if: always()
+        run: docker rm -f flight-supervision || true
