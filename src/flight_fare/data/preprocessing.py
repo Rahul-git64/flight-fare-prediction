@@ -41,7 +41,7 @@ def build_preprocessor(config: AppConfig) -> ColumnTransformer:
                 OrdinalEncoder(
                     categories=ordered_categories,
                     handle_unknown="use_encoded_value",
-                    unknown_value=-1.0,
+                    unknown_value=-1,
                 ),
             ),
             ("scaler", MinMaxScaler()),
