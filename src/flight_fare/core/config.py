@@ -12,8 +12,11 @@ from flight_fare.core.exceptions import ConfigurationError
 
 
 def get_project_root() -> Path:
-    """Resolve the repository root directory relative to this module."""
-    return Path(__file__).resolve().parents[3]
+    """Resolve the repository root directory across editable and site-packages installs."""
+    module_parent = Path(__file__).resolve().parents[3]
+    if (module_parent / "configs" / "config.yaml").exists():
+        return module_parent
+    return Path.cwd()
 
 
 @dataclass(frozen=True)
