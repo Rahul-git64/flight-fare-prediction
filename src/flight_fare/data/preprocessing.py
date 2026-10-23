@@ -36,7 +36,14 @@ def build_preprocessor(config: AppConfig) -> ColumnTransformer:
     cat_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("ordinal_encoder", OrdinalEncoder(categories=ordered_categories)),
+            (
+                "ordinal_encoder",
+                OrdinalEncoder(
+                    categories=ordered_categories,
+                    handle_unknown="use_encoded_value",
+                    unknown_value=-1.0,
+                ),
+            ),
             ("scaler", MinMaxScaler()),
         ]
     )
